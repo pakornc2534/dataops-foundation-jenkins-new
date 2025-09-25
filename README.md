@@ -1,239 +1,187 @@
-# Simple ETL CI/CD Pipeline
+# 🚀 ETL Pipeline ง่ายๆ พร้อม Jenkins
 
-🚀 **ETL Pipeline with Jenkins CI/CD Integration**
+## 📖 นี่คืออะไร?
 
-## 📋 Overview
+โปรเจคนี้เป็น **ระบบประมวลผลข้อมูล** ที่ทำงานแบบอัตโนมัติ:
+- อ่านข้อมูล Loan จากไฟล์ CSV
+- ทำความสะอาดข้อมูล
+- แปลงเป็นรูปแบบ Database 
+- ส่งเข้า SQL Server อัตโนมัติ
+- มี Jenkins ช่วยตรวจสอบและรันให้
 
-โปรเจคนี้เป็น Simple ETL Pipeline ที่ใช้ Jenkins สำหรับ CI/CD โดยมีฟังก์ชันหลัก 3 ตัวในการประมวลผลข้อมูล Loan Data และสร้าง Star Schema
+## 🎯 ทำอะไรได้บ้าง?
 
-## 🏗️ Project Structure
+### ✨ **ระบบทำงานอัตโนมัติ**
+- ✅ อ่านไฟล์ข้อมูลขนาดใหญ่ได้
+- ✅ ทำความสะอาดข้อมูลอัตโนมัติ  
+- ✅ ตรวจสอบคุณภาพข้อมูลด้วย Unit Test
+- ✅ ส่งข้อมูลเข้า Database ให้อัตโนมัติ
+- ✅ แจ้งเตือนเมื่อมีปัญหา
 
-```
-dataops-foundation-jenkins-new/
-├── functions/                          # ETL Functions Package
-│   ├── __init__.py                     
-│   ├── guess_column_types.py           # ฟังก์ชันเดาประเภทข้อมูล
-│   ├── filter_issue_date_range.py      # ฟังก์ชันกรองช่วงวันที่
-│   └── clean_missing_values.py         # ฟังก์ชันทำความสะอาด missing values
-├── tests/                              # Unit Tests
-│   ├── guess_column_types_test.py      
-│   ├── filter_issue_date_range_test.py 
-│   └── clean_missing_values_test.py    
-├── etl_pipeline.py                     # ETL Pipeline หลัก
-├── Jenkinsfile                         # Jenkins Pipeline Definition
-├── requirements.txt                    # Python Dependencies
-└── README.md                           # เอกสารนี้
-```
-
-## 🎯 Pipeline Flow
-
-### 1. 🧪 Unit Tests (Parallel)
-- ทดสอบ `guess_column_types()` - เดาประเภทข้อมูลจากไฟล์ CSV
-- ทดสอบ `filter_issue_date_range()` - กรองข้อมูลตามช่วงวันที่ 2016-2019
-- ทดสอบ `clean_missing_values()` - ลบคอลัมน์ที่มี missing values มากกว่า 30%
-
-### 2. 🔄 ETL Processing
-- โหลดข้อมูลจาก `LoanStats_web_small.csv`
-- ใช้ฟังก์ชันทั้ง 3 ในการประมวลผลข้อมูล
-- สร้าง Star Schema (Fact + Dimension Tables)
-- แสดงผลลัพธ์และสถิติ
-
-### 3. 📤 Continuous Deployment
-- ส่ง Fact Table และ Dimension Tables ไปยัง MSSQL Database
-- รันทุกครั้งเมื่อ tests ผ่านทั้งหมด
-- Database: `34.10.241.203/TestDB`
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.9+
-- Jenkins with Pipeline plugin
-- Docker installed
-- Access to MSSQL Server (`34.10.241.203`)
-- Data file: `../dataops-foundation-jenkins/data/LoanStats_web_small.csv`
-
-### Docker Setup
-
-**Run Jenkins Container:**
-```bash
-docker run -d --name jenkins-python --restart unless-stopped -e TZ=Asia/Bangkok -p 8080:8080 -p 50000:50000 -v jenkins-data:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock jenkins-python:latest
-```
-
-**Access Jenkins:**
-- URL: http://localhost:8080
-- Initial setup จะต้องดู admin password จาก logs:
-```bash
-docker logs jenkins-python
-```
-
-### Local Testing
-
-```bash
-# 1. Setup environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# หรือ venv\Scripts\activate  # Windows
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Run unit tests
-cd tests
-python guess_column_types_test.py
-python filter_issue_date_range_test.py
-python clean_missing_values_test.py
-
-# 4. Run ETL pipeline
-cd ..
-python etl_pipeline.py
-
-# 5. Run with database deployment
-python etl_pipeline.py --deploy
-```
-
-## 🔧 Jenkins Setup
-
-### 1. Create Jenkins Job
-```
-1. New Item → Pipeline
-2. Pipeline script from SCM
-3. Git Repository: [your-repo-url]
-4. Script Path: Jenkinsfile
-```
-
-### 2. Configure Credentials
-```
-Manage Jenkins → Manage Credentials → Add Credentials
-- Kind: Secret text
-- ID: mssql-password
-- Secret: Passw0rd123456
-```
-
-### 3. Database Configuration
-```
-Server: 34.10.241.203
-Database: TestDB  
-Username: SA
-Password: Passw0rd123456 (from Jenkins credentials)
-```
-
-### 4. Pipeline Parameters (Optional)
-```
-DEPLOY_TO_DB: Boolean (default: false) - ไม่จำเป็นแล้ว เพราะ deploy ทุกครั้ง
-```
-
-## 📊 ETL Functions
-
-### 1. `guess_column_types(file_path)`
-```python
-success, column_types = guess_column_types('data.csv')
-# Returns: (True, {'col1': 'integer', 'col2': 'string', ...})
-```
-
-### 2. `filter_issue_date_range(df)`
-```python
-filtered_df = filter_issue_date_range(df)
-# Keeps only records from 2016-2019
-```
-
-### 3. `clean_missing_values(df, max_null_percentage=30)`
-```python
-clean_df = clean_missing_values(df, max_null_percentage=30)
-# Removes columns with >30% missing values
-```
-
-## 📈 Star Schema Output
-
-### Dimension Tables
-- **home_ownership_dim**: `home_ownership_id`, `home_ownership`
-- **loan_status_dim**: `loan_status_id`, `loan_status`  
-- **issue_d_dim**: `issue_d_id`, `issue_d`, `month`, `year`, `quarter`
-
-### Fact Table
-- **loans_fact**: `fact_id`, `loan_amnt`, `funded_amnt`, `term`, `int_rate`, `installment`, `home_ownership_id`, `loan_status_id`, `issue_d_id`
-
-## 📝 Jenkins Pipeline Stages
-
-```groovy
-1. 🔄 Checkout & Setup     - โครงสร้างโปรเจค
-2. 🐍 Python Environment   - ติดตั้ง dependencies  
-3. 🧪 Unit Tests          - ทดสอบฟังก์ชันทั้ง 3 (parallel)
-4. 🔍 ETL Validation      - ตรวจสอบ components
-5. 🔄 ETL Processing      - รัน ETL pipeline
-6. 📤 Deploy to Database  - ส่งข้อมูลไป MSSQL (conditional)
-```
-
-## 🎯 Expected Results
-
-### Success Case
-```
-🎉 ETL Pipeline succeeded!
-✅ All tests passed (12/12)
-✅ ETL processing completed
-✅ Star schema created:
-   - 3 dimension tables
-   - 1 fact table with X,XXX records
-✅ Deployed to database
-```
-
-### Test Results
-```
-📊 SUMMARY RESULTS
-==================
-1. Test Case 1: การตรวจจับประเภทข้อมูลพื้นฐาน: ✅ PASS
-2. Test Case 2: ทดสอบการตรวจจับรูปแบบวันที่และเวลา: ✅ PASS
-3. Test Case 3: ทดสอบตัวแบ่งที่แตกต่างกัน: ✅ PASS
-4. Test Case 4: Edge Cases: ✅ PASS
-
-🎯 Overall Result: 4/4 tests passed
-🎉 ALL TESTS PASSED!
-```
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-1. **Database Connection Failed**
-   ```
-   ❌ Database connection failed: connection timeout
-   ```
-   **Solution**: ตรวจสอบ network และ credentials
-
-2. **Data File Not Found**
-   ```
-   ⚠️ Data file not found: ../dataops-foundation-jenkins/data/LoanStats_web_small.csv
-   ```
-   **Solution**: ตรวจสอบ path ของไฟล์ข้อมูล
-
-3. **Import Error**
-   ```
-   ModuleNotFoundError: No module named 'functions'
-   ```
-   **Solution**: รัน `pip install -r requirements.txt`
-
-### Debug Mode
-```bash
-# เปิด debug mode
-export JENKINS_DEBUG=true
-python etl_pipeline.py
-```
-
-## 📞 Support
-
-หากมีปัญหาหรือข้อสงสัย:
-1. ตรวจสอบ Console Output ใน Jenkins
-2. ดู logs ในส่วน troubleshooting
-3. ตรวจสอบ requirements และ dependencies
-
-## 🎖️ Features
-
-- ✅ **Simple & Clean**: โครงสร้างง่าย เข้าใจได้
-- ✅ **Parallel Testing**: รัน tests พร้อมกันเพื่อความเร็ว
-- ✅ **Error Handling**: จัดการ error แบบครบถ้วน
-- ✅ **Star Schema**: สร้าง dimension และ fact tables
-- ✅ **Database Integration**: ส่งข้อมูลไป MSSQL อัตโนมัติ
-- ✅ **CI/CD Ready**: พร้อมใช้กับ Jenkins pipeline
+### 📊 **จัดข้อมูลเป็นระเบียบ**
+- สร้างตาราง Fact และ Dimension Tables
+- กรองเฉพาะข้อมูลปี 2016-2019
+- ลบคอลัมน์ที่มีข้อมูลขาดมากกว่า 30%
 
 ---
 
-🎉 **Happy ETL Processing!** 🚀
+## 🚀 วิธีใช้งาน
+
+### **ขั้นตอนที่ 1: เตรียม Docker**
+```bash
+# รัน Jenkins ใน Docker
+docker run -d --name jenkins-python --restart unless-stopped -e TZ=Asia/Bangkok -p 8080:8080 -p 50000:50000 -v jenkins-data:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock jenkins-python:latest
+```
+
+### **ขั้นตอนที่ 2: เข้า Jenkins**
+1. เปิดเบราว์เซอร์ไป http://localhost:8080
+2. ดู password จาก Docker logs:
+   ```bash
+   docker logs jenkins-python
+   ```
+3. ใส่ password และ setup Jenkins
+
+### **ขั้นตอนที่ 3: สร้าง Job**
+1. กด **New Item** → **Pipeline**
+2. ใส่ Git URL ของโปรเจคนี้
+3. Script Path: `Jenkinsfile`
+4. Save และ Build Now
+
+### **ขั้นตอนที่ 4: ดูผลลัพธ์**
+- Jenkins จะรันทุกอย่างอัตโนมัติ
+- ดูผลได้ใน Console Output
+- ข้อมูลจะถูกส่งไป SQL Server: `34.10.241.203`
+
+---
+
+## 🏗️ โครงสร้างโปรเจค
+
+```
+📁 dataops-foundation-jenkins-new/
+├── 📂 functions/           # ฟังก์ชันสำหรับประมวลผลข้อมูล
+│   ├── guess_column_types.py      # เดาประเภทข้อมูล
+│   ├── filter_issue_date_range.py # กรองตามวันที่
+│   └── clean_missing_values.py    # ทำความสะอาดข้อมูล
+├── 📂 tests/              # ทดสอบระบบ
+├── 📂 data/               # ไฟล์ข้อมูล
+├── etl_pipeline.py        # โปรแกรมหลัก
+└── Jenkinsfile           # คำสั่ง Jenkins
+```
+
+---
+
+## ⚙️ ระบบทำงานอย่างไร?
+
+### **🔄 Jenkins จะทำให้อัตโนมัติ 6 ขั้นตอน:**
+
+#### **1. 🔍 ตรวจสอบโปรเจค**
+- เช็คว่าไฟล์ครบไหม
+- เตรียม environment
+
+#### **2. 🐍 ติดตั้ง Python**
+- สร้าง virtual environment
+- ติดตั้ง pandas, numpy, sqlalchemy
+
+#### **3. 🧪 ทดสอบระบบ (รันพร้อมกัน 3 ตัว)**
+- **Test A:** ทดสอบการเดาประเภทข้อมูล
+- **Test B:** ทดสอบการกรองวันที่
+- **Test C:** ทดสอบการทำความสะอาด
+
+#### **4. ✅ ตรวจสอบความพร้อม**
+- เช็คว่า import functions ได้ไหม
+- เช็คว่าไฟล์ข้อมูลอ่านได้ไหม
+
+#### **5. 🔄 ประมวลผลข้อมูล**
+- อ่านไฟล์ CSV
+- ทำความสะอาดข้อมูล
+- สร้างตารางฐานข้อมูล
+
+#### **6. 🚀 ส่งเข้า Database**
+- ส่งข้อมูลไป SQL Server
+- ตรวจสอบว่าส่งสำเร็จ
+
+---
+
+## 📊 ได้ข้อมูลอะไรออกมา?
+
+### **ตาราง Dimension (ข้อมูลอ้างอิง):**
+- **home_ownership_dim** - ประเภทการเป็นเจ้าของบ้าน
+- **loan_status_dim** - สถานะเงินกู้
+- **issue_d_dim** - ข้อมูลวันที่ (เดือน, ปี, ไตรมาส)
+
+### **ตาราง Fact (ข้อมูลหลัก):**
+- **loans_fact** - ข้อมูลเงินกู้ทั้งหมด
+- มีข้อมูล: จำนวนเงิน, อัตราดอกเบิ้ย, งวดผ่อน
+
+---
+
+## 🛠️ ทดสอบเฉพาะส่วน (ถ้าอยากลอง)
+
+### **รันแค่ประมวลผลข้อมูล:**
+```bash
+cd dataops-foundation-jenkins-new
+python etl_pipeline.py
+```
+
+### **รันพร้อมส่งเข้า Database:**
+```bash
+python etl_pipeline.py --deploy
+```
+
+### **รันแค่ Test:**
+```bash
+cd tests
+python guess_column_types_test.py
+python filter_issue_date_range_test.py  
+python clean_missing_values_test.py
+```
+
+---
+
+## ❓ เกิดปัญหาแก้ไงบ้าง?
+
+### **🔴 Jenkins ไม่ทำงาน**
+```
+ปัญหา: Jenkins container ไม่รัน
+แก้: docker restart jenkins-python
+```
+
+### **🔴 ไฟล์ข้อมูลไม่เจอ**
+```
+ปัญหา: Data file not found
+แก้: เช็คว่ามีไฟล์ data/LoanStats_web_small.csv ไหม
+```
+
+### **🔴 เชื่อมต่อ Database ไม่ได้**
+```
+ปัญหา: Database connection failed
+แก้: เช็ค network และ password ใน Jenkins Credentials
+```
+
+### **🔴 Test ล้มเหลว**
+```
+ปัญหา: Unit tests failed
+แก้: ดู Console Output ว่า error อะไร แล้วแก้โค้ด
+```
+
+---
+
+## 🎯 สรุปง่ายๆ
+
+โปรเจคนี้ทำให้คุณ:
+1. **ประมวลผลข้อมูลขนาดใหญ่** ได้แบบอัตโนมัติ
+2. **ตรวจสอบคุณภาพข้อมูล** ด้วย Unit Testing
+3. **ส่งข้อมูลเข้า Database** โดยไม่ต้องทำเอง
+4. **มั่นใจได้** ว่าระบบทำงานถูกต้อง
+
+## 🎉 ข้อดี
+
+- ✅ **ง่ายใช้**: แค่กด Build ใน Jenkins
+- ✅ **ปลอดภัย**: มี Test ตรวจสอบก่อนส่งข้อมูล  
+- ✅ **รวดเร็ว**: รันแบบ parallel testing
+- ✅ **น่าเชื่อถือ**: มี error handling ครบถ้วน
+- ✅ **ขยายได้**: เพิ่ม functions ใหม่ได้ง่าย
+
+---
+
+*💡 **เคล็ดลับ:** ถ้าต้องการดูรายละเอียดการทำงาน ไปดูใน Console Output ของ Jenkins หลังจากกด Build*
