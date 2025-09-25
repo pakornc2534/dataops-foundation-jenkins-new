@@ -48,8 +48,23 @@ dataops-foundation-jenkins-new/
 ### Prerequisites
 - Python 3.9+
 - Jenkins with Pipeline plugin
+- Docker installed
 - Access to MSSQL Server (`34.10.241.203`)
 - Data file: `../dataops-foundation-jenkins/data/LoanStats_web_small.csv`
+
+### Docker Setup
+
+**Run Jenkins Container:**
+```bash
+docker run -d --name jenkins-python --restart unless-stopped -e TZ=Asia/Bangkok -p 8080:8080 -p 50000:50000 -v jenkins-data:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock jenkins-python:latest
+```
+
+**Access Jenkins:**
+- URL: http://localhost:8080
+- Initial setup จะต้องดู admin password จาก logs:
+```bash
+docker logs jenkins-python
+```
 
 ### Local Testing
 
